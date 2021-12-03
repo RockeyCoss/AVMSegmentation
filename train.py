@@ -4,12 +4,11 @@ import logging
 
 import torch
 from monai.data import CacheDataset, DataLoader
+from monai.losses import DiceLoss
+from monai.metrics import DiceMetric
 from monai.utils import first, set_determinism
 from monai.transforms import (
     Compose,
-    ScaleIntensity,
-    AddChannel,
-    RandSpatialCrop,
     LoadImaged,
     AddChanneld,
     Spacingd,
@@ -18,6 +17,8 @@ from monai.transforms import (
     RandCropByPosNegLabeld,
     CropForegroundd
 )
+
+from models import VNet
 
 data_dir = ""
 
@@ -89,4 +90,33 @@ def main():
         device = torch.device('cuda') if torch.cuda.is_available() \
             else torch.device('cpu')
 
-        # model = 
+        model = VNet().to(device)
+        loss_function = DiceLoss(to_onehot_y=True, softmax=True)
+        optimizer = torch.optim.Adam(model.parameters(), 1e-4)
+        dice_metric = DiceMetric(include_background=False,
+                                 reduction='mean')
+        max_epochs = 600
+        val_interval = 2
+
+        for epoch in range(max_epochs):
+            print("-" * 20)
+            print(f"epoch {epoch + 1} / {max_epochs}")
+            epoch_loss = 0
+            step = 0
+            model.train()
+            for data in train_loader:
+                step += 1
+                inputs, labels = (
+                    data['img'].to(device),
+                    data['seg'].to(device),
+                )
+                optimizer.zero_grad()
+                pred = model(inputs)
+                loss = loss_function(pred, labels)
+                loss.backward()
+                optimizer.step()
+                epoch_loss += loss.item()
+                print(f'{step}/{len(train_ds) // train_loader.batch_size},  '
+                      f'train_loss: {loss.item():.4f}')
+            epoch_loss /= step
+            print(f'epoch {epoch + 1} average loss: {epoch_loss:.4f}')
