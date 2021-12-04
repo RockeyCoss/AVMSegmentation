@@ -1,11 +1,11 @@
 import os
 import os.path as osp
-import json
 from argparse import ArgumentParser
+import time
 
 import torch
 from monai.data import CacheDataset, DataLoader, decollate_batch
-from monai.losses import DiceLoss, DiceCELoss
+from monai.losses import DiceCELoss
 from monai.metrics import DiceMetric
 from monai.inferers import sliding_window_inference
 
@@ -24,6 +24,7 @@ from core.models.builder import build_model
 from core.utils import load_config, Logger
 
 work_dir = ""
+get_time = lambda: time.strftime('%Y%m%d_%H%M%S')
 
 
 # data directory:
@@ -44,8 +45,8 @@ def main():
         work_dir = cfg['work_dir']
     if not osp.exists(work_dir):
         os.makedirs(work_dir)
-    logger = Logger(osp.join(work_dir, 'log.json'))
-    logger.print_and_log(dict(config=cfg), True)
+    logger = Logger(osp.join(work_dir, f'{get_time()}log.json'))
+    logger.print_and_log(dict(config=cfg))
     images = sorted(
         osp.join(data_dir, i) for i in os.listdir(data_dir) if 'seg' not in i
     )
