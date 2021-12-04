@@ -1,2 +1,4 @@
 .idea
 temp
+work_dir
+*/__pycache__

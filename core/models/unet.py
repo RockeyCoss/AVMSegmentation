@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from core.models import MODELS
+
 
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, mid_channels=None):
@@ -22,17 +24,14 @@ class ConvBlock(nn.Module):
         )
 
     def forward(self, x):
-        residual = x
-        x = self.blocks(x)
-        x = x + residual
-        return x
+        return self.blocks(x)
 
 
 class Downsample(nn.Module):
     def __init__(self,
                  in_channels,
                  out_channels,
-                 down_rate=2.0):
+                 down_rate=2):
         super(Downsample, self).__init__()
         self.max_pool = nn.MaxPool3d(down_rate)
         self.conv = ConvBlock(in_channels, out_channels)
@@ -64,7 +63,7 @@ class Upsample(nn.Module):
         for diff in size_diff:
             pad_size.extend([diff // 2, diff - diff//2])
         x = F.pad(x, pad_size)
-        assert x.shape == x_skip.shape
+        assert x.shape[2:] == x_skip.shape[2:]
         x = torch.cat([x, x_skip], dim=1)
         return self.conv(x)
 
@@ -79,13 +78,14 @@ class Segmentor(nn.Module):
         return self.conv(x)
 
 
-class VNet(nn.Module):
+@MODELS.registry_module()
+class UNet(nn.Module):
     def __init__(self,
                  img_channels=1,
                  in_channels=16,
                  num_classes=2,
                  stage = 3):
-        super(VNet, self).__init__()
+        super(UNet, self).__init__()
         self.in_conv = ConvBlock(img_channels,
                                  in_channels)
         self.down = nn.ModuleList()
@@ -99,7 +99,7 @@ class VNet(nn.Module):
         for i in range(stage):
             self.up.append(Upsample(current_channels,
                                     current_channels // 2,
-                                    current_channels))
+                                    current_channels // 2))
             current_channels //= 2
 
         self.out_conv = Segmentor(current_channels, num_classes)
@@ -116,3 +116,9 @@ class VNet(nn.Module):
             x = block(x, downsample_features[feature_num - index])
         logit = self.out_conv(x)
         return logit
+
+
+if __name__ == '__main__':
+    vnet = UNet()
+    test_img = torch.rand(1, 1, 32, 32, 32)
+    result = vnet(test_img)
