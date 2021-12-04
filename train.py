@@ -39,6 +39,7 @@ def main():
     data_dir = cfg['data_dir']
     batch_size = cfg['batch_size']
     patch_size = cfg['patch_size']
+    num_workers = cfg['num_workers']
     if 'work_dir' not in cfg:
         work_dir = f'./work_dir/{osp.splitext(osp.basename(args.config_dir))[0]}'
     else:
@@ -104,20 +105,20 @@ def main():
         logger.print_and_log({'style': '-' * 20})
         train_ds = CacheDataset(
             data=train_files, transform=train_transforms,
-            cache_rate=0.0, num_workers=4
+            cache_rate=0.0, num_workers=num_workers
         )
         train_loader = DataLoader(train_ds,
                                   batch_size=batch_size,
                                   shuffle=True,
-                                  num_workers=4,
+                                  num_workers=num_workers,
                                   pin_memory=True
                                   )
         val_ds = CacheDataset(
             data=val_files, transform=val_transforms,
-            cache_rate=0.0, num_workers=4
+            cache_rate=0.0, num_workers=num_workers
         )
         val_loader = DataLoader(val_ds,
-                                batch_size=batch_size, num_workers=4,
+                                batch_size=batch_size, num_workers=num_workers,
                                 shuffle=False, pin_memory=True)
 
         device = torch.device('cuda') if torch.cuda.is_available() \
