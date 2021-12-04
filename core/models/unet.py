@@ -119,6 +119,6 @@ class UNet(nn.Module):
 
 
 if __name__ == '__main__':
-    vnet = UNet()
-    test_img = torch.rand(1, 1, 32, 32, 32)
-    result = vnet(test_img)
+    unet = UNet()
+    from torchsummary import summary
+    summary(unet, (1, 96, 96, 96), device='cpu')
