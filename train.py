@@ -1,7 +1,6 @@
 import os
 import os.path as osp
-import sys
-import logging
+import json
 from argparse import ArgumentParser
 
 import torch
@@ -45,8 +44,8 @@ def main():
         work_dir = cfg['work_dir']
     if not osp.exists(work_dir):
         os.makedirs(work_dir)
-    logger = Logger(osp.join(work_dir, 'log.txt'))
-
+    logger = Logger(osp.join(work_dir, 'log.json'))
+    logger.print_and_log(dict(config=cfg), True)
     images = sorted(
         osp.join(data_dir, i) for i in os.listdir(data_dir) if 'seg' not in i
     )
@@ -96,15 +95,15 @@ def main():
     )
 
     # one fold evaluation
-    for index in range(len(data_dicts)):
-        val_files = [data_dicts[index]]
-        train_files = data_dicts[: index] + data_dicts[index + 1:]
-        logger.print_and_log('-' * 10)
-        logger.print_and_log('Fold Start')
-        logger.print_and_log('-' * 10)
+    for fold_index in range(len(data_dicts)):
+        val_files = [data_dicts[fold_index]]
+        train_files = data_dicts[: fold_index] + data_dicts[fold_index + 1:]
+        logger.print_and_log({'style': '-' * 20})
+        logger.print_and_log({'info': f'fold: {fold_index + 1}'})
+        logger.print_and_log({'style': '-' * 20})
         train_ds = CacheDataset(
             data=train_files, transform=train_transforms,
-            cache_rate=1.0, num_workers=4
+            cache_rate=0.0, num_workers=4
         )
         train_loader = DataLoader(train_ds,
                                   batch_size=batch_size,
@@ -114,7 +113,7 @@ def main():
                                   )
         val_ds = CacheDataset(
             data=val_files, transform=val_transforms,
-            cache_rate=1.0, num_workers=4
+            cache_rate=0.0, num_workers=4
         )
         val_loader = DataLoader(val_ds,
                                 batch_size=batch_size, num_workers=4,
@@ -134,8 +133,10 @@ def main():
         post_label = Compose([EnsureType(), AsDiscrete(to_onehot=2)])
 
         for epoch in range(max_epochs):
-            logger.print_and_log("-" * 20)
-            logger.print_and_log(f"epoch {epoch + 1} / {max_epochs}")
+            logger.print_and_log({'style': '-' * 20})
+            logger.print_and_log(dict(fold=fold_index + 1,
+                                      epoch=epoch + 1,
+                                      max_epochs=max_epochs))
             epoch_loss = 0
             step = 0
             model.train()
@@ -151,10 +152,12 @@ def main():
                 loss.backward()
                 optimizer.step()
                 epoch_loss += loss.item()
-                logger.print_and_log(f'{step}/{len(train_ds) // train_loader.batch_size},  '
-                                     f'train_loss: {loss.item():.4f}')
+                logger.print_and_log(dict(step=step,
+                                          total_step=len(train_ds) // train_loader.batch_size,
+                                          training_loss=round(loss.item, 4)))
             epoch_loss /= step
-            logger.print_and_log(f'epoch {epoch + 1} average loss: {epoch_loss:.4f}')
+            logger.print_and_log(dict(epoch=epoch + 1,
+                                      average_loss=round(epoch_loss, 4)))
 
             # validation
             if (epoch + 1) % val_interval == 0:
@@ -176,9 +179,9 @@ def main():
 
                     metric = dice_metric.aggregate().item()
                     dice_metric.reset()
-                    logger.print_and_log(
-                        f"current epoch: {epoch + 1} current mean dice: {metric:.4f}"
-                    )
+                    logger.print_and_log(dict(fold=fold_index + 1,
+                                              epoch=epoch + 1,
+                                              mean_dice=round(metric, 4)))
                     # torch.save(model.state_dict(), os.path.join(
                     #     work_dir, f"epoch{epoch + 1}:dice{metric:.4f}.pth"
                     # ))
