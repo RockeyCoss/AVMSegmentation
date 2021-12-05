@@ -26,14 +26,14 @@ if __name__ == '__main__':
     source_dir = args.source_dir
     target_dir = args.target_dir
     if not os.path.exists(target_dir):
-        os.mkdir(target_dir)
+        os.makedirs(target_dir)
     with tqdm(total=len(os.listdir(source_dir))) as pbar:
         for i in os.listdir(source_dir):
             if 'seg' not in i:
                 img, header = nrrd.read(os.path.join(source_dir, i))
-                img = window_select(img, width=177)
+                img = window_select(img)
                 nrrd.write(os.path.join(target_dir, i), img,header)
             else:
-                shutil.copyfile(os.path.join(source_dir, i), target_dir)
+                shutil.copy(os.path.join(source_dir, i), target_dir)
             pbar.update(1)
     print("all done")

@@ -20,7 +20,7 @@ def main():
     target_dir = args.target_dir
     nrrd_files = os.listdir(source_dir)
     if not os.path.exists(target_dir):
-        os.mkdir(target_dir)
+        os.makedirs(target_dir)
 
     with tqdm(total=len(nrrd_files)) as pbar:
         pbar.set_description('Processing')

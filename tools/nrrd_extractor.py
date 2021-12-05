@@ -4,10 +4,7 @@ import os
 import shutil
 import zipfile
 
-import nrrd
 from tqdm import tqdm
-
-from data_transform import window_select
 
 
 def parse_args():
@@ -24,7 +21,7 @@ def main():
     target_dir = args.target_dir
     mrb_files = os.listdir(source_dir)
     if not os.path.exists(target_dir):
-        os.mkdir(target_dir)
+        os.makedirs(target_dir)
 
     with tqdm(total=len(mrb_files)) as pbar:
         pbar.set_description('Processing')
