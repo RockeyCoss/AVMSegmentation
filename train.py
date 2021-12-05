@@ -40,6 +40,7 @@ def main():
     batch_size = cfg['batch_size']
     patch_size = cfg['patch_size']
     num_workers = cfg['num_workers']
+    cache_rate = cfg['cache_rate']
     if 'work_dir' not in cfg:
         work_dir = f'./work_dir/{osp.splitext(osp.basename(args.config_dir))[0]}'
     else:
@@ -105,7 +106,7 @@ def main():
         logger.print_and_log({'style': '-' * 20})
         train_ds = CacheDataset(
             data=train_files, transform=train_transforms,
-            cache_rate=0.0, num_workers=num_workers
+            cache_rate=cache_rate, num_workers=num_workers
         )
         train_loader = DataLoader(train_ds,
                                   batch_size=batch_size,
@@ -115,7 +116,7 @@ def main():
                                   )
         val_ds = CacheDataset(
             data=val_files, transform=val_transforms,
-            cache_rate=0.0, num_workers=num_workers
+            cache_rate=cache_rate, num_workers=num_workers
         )
         val_loader = DataLoader(val_ds,
                                 batch_size=batch_size, num_workers=num_workers,
