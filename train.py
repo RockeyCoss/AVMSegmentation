@@ -157,7 +157,7 @@ def main():
                 epoch_loss += loss.item()
                 logger.print_and_log(dict(step=step,
                                           total_step=len(train_ds) // train_loader.batch_size,
-                                          training_loss=round(loss.item, 4)))
+                                          training_loss=round(loss.item(), 4)))
             epoch_loss /= step
             logger.print_and_log(dict(epoch=epoch + 1,
                                       average_loss=round(epoch_loss, 4)))
