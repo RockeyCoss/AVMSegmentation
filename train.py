@@ -50,7 +50,7 @@ def main():
     if not osp.exists(work_dir):
         os.makedirs(work_dir)
     logger = Logger(osp.join(work_dir, f'{get_time()}log.json'))
-    logger.print_and_log(dict(config=cfg))
+    logger.print_and_log_j(dict(type='info', config=cfg))
     images = sorted(
         osp.join(data_dir, i) for i in os.listdir(data_dir) if 'seg' not in i
     )
@@ -103,9 +103,9 @@ def main():
     for fold_index in range(len(data_dicts)):
         val_files = [data_dicts[fold_index]]
         train_files = data_dicts[: fold_index] + data_dicts[fold_index + 1:]
-        logger.print_and_log({'style': '-' * 20})
-        logger.print_and_log({'info': f'fold: {fold_index + 1}'})
-        logger.print_and_log({'style': '-' * 20})
+        logger.print_and_log_j(dict(type='style', content='-' * 20))
+        logger.print_and_log_j(dict(type='info', content=f'fold: {fold_index + 1}'))
+        logger.print_and_log_j(dict(type='style', content='-' * 20))
         train_ds = CacheDataset(
             data=train_files, transform=train_transforms,
             cache_rate=cache_rate, num_workers=num_workers
@@ -137,8 +137,9 @@ def main():
         post_label = Compose([EnsureType(), AsDiscrete(to_onehot=2)])
 
         for epoch in range(max_epoch):
-            logger.print_and_log({'style': '-' * 20})
-            logger.print_and_log(dict(fold=fold_index + 1,
+            logger.print_and_log_j(dict(type='style', content='-' * 20))
+            logger.print_and_log_j(dict(type='info',
+                                      fold=fold_index + 1,
                                       epoch=epoch + 1,
                                       max_epochs=max_epoch))
             epoch_loss = 0
@@ -156,11 +157,13 @@ def main():
                 loss.backward()
                 optimizer.step()
                 epoch_loss += loss.item()
-                logger.print_and_log(dict(step=step,
+                logger.print_and_log_j(dict(type='train',
+                                          step=step,
                                           total_step=len(train_ds) // train_loader.batch_size,
                                           training_loss=round(loss.item(), 4)))
             epoch_loss /= step
-            logger.print_and_log(dict(epoch=epoch + 1,
+            logger.print_and_log_j(dict(type='epoch_summary',
+                                      epoch=epoch + 1,
                                       average_loss=round(epoch_loss, 4)))
 
             # validation
@@ -183,7 +186,8 @@ def main():
 
                     metric = dice_metric.aggregate().item()
                     dice_metric.reset()
-                    logger.print_and_log(dict(fold=fold_index + 1,
+                    logger.print_and_log_j(dict(type='val',
+                                              fold=fold_index + 1,
                                               epoch=epoch + 1,
                                               mean_dice=round(metric, 4)))
                     # torch.save(model.state_dict(), os.path.join(
