@@ -41,6 +41,8 @@ def main():
     patch_size = cfg['patch_size']
     num_workers = cfg['num_workers']
     cache_rate = cfg['cache_rate']
+    max_epoch = cfg['max_epoch']
+    val_interval = cfg['val_interval']
     if 'work_dir' not in cfg:
         work_dir = f'./work_dir/{osp.splitext(osp.basename(args.config_dir))[0]}'
     else:
@@ -130,16 +132,15 @@ def main():
         optimizer = torch.optim.Adam(model.parameters(), 1e-4)
         dice_metric = DiceMetric(include_background=False,
                                  reduction='mean')
-        max_epochs = 600
-        val_interval = 2
+
         post_pred = Compose([EnsureType(), AsDiscrete(argmax=True, to_onehot=2)])
         post_label = Compose([EnsureType(), AsDiscrete(to_onehot=2)])
 
-        for epoch in range(max_epochs):
+        for epoch in range(max_epoch):
             logger.print_and_log({'style': '-' * 20})
             logger.print_and_log(dict(fold=fold_index + 1,
                                       epoch=epoch + 1,
-                                      max_epochs=max_epochs))
+                                      max_epochs=max_epoch))
             epoch_loss = 0
             step = 0
             model.train()
@@ -176,9 +177,9 @@ def main():
                         val_outputs = sliding_window_inference(
                             val_inputs, roi_size, sw_batch_size, model)
                         val_outputs = [post_pred(i) for i in decollate_batch(val_outputs)]
-                        val_labels = [post_label(i) for i in decollate_batch(val_labels)]
+                        val_seg = [post_label(i) for i in decollate_batch(val_seg)]
 
-                        dice_metric(y_pred=val_outputs, y=val_labels)
+                        dice_metric(y_pred=val_outputs, y=val_seg)
 
                     metric = dice_metric.aggregate().item()
                     dice_metric.reset()
